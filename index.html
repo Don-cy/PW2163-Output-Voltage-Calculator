@@ -2,47 +2,54 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 移动端适配关键标签 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>PW2163输出电压计算器</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             /* 护眼绿渐变背景 */
             background-image: linear-gradient(135deg, #e6f7e6 0%, #c7edcc 100%);
+            background-attachment: fixed; /* 背景固定 */
             
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: center; /* 垂直居中 */
             min-height: 100vh;
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
             user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
-        /* 布局容器：左图 + 计算器 + 右图 */
+        /* 布局容器：大幅加宽，为大图留空间 */
         .main-container {
             display: flex;
-            align-items: center; /* 垂直居中 */
+            align-items: center; 
             justify-content: center;
-            gap: 30px; /* 间距 */
-            max-width: 1200px;
+            gap: 40px; 
+            /* --- 修改点1：放宽最大页面宽度 --- */
+            max-width: 1800px; 
             width: 100%;
+            transition: all 0.3s ease;
         }
 
         /* 侧边图片容器 */
         .side-panel {
-            flex: 1; /* 弹性宽度 */
+            flex: 1; 
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             background: rgba(255, 255, 255, 0.6);
-            padding: 15px;
+            padding: 20px;
             border-radius: 16px;
             box-shadow: 0 8px 20px rgba(88, 168, 105, 0.1);
             border: 1px solid rgba(199, 237, 204, 0.5);
-            max-width: 300px; /* 图片最大宽度限制 */
+            /* --- 修改点2：大幅增加图片区域最大宽度 (原450px -> 680px) --- */
+            max-width: 680px; 
+            min-width: 300px;
             transition: transform 0.3s;
         }
 
@@ -52,18 +59,27 @@
         }
 
         .side-panel h3 {
-            margin: 0 0 10px 0;
+            margin: 0 0 15px 0;
             color: #3e5c46;
-            font-size: 1rem;
+            font-size: 1.1rem;
             text-align: center;
+            font-weight: bold;
         }
 
         .side-panel img {
             width: 100%;
-            height: auto;
+            height: auto; 
             border-radius: 8px;
-            /* 给图片加一点边框效果 */
             border: 2px solid #fff; 
+            display: block;
+        }
+
+        .side-desc {
+            margin-top: 15px; 
+            font-size: 0.9rem; 
+            color: #556b5d; 
+            line-height: 1.5; 
+            text-align: center;
         }
 
         /* 计算器核心卡片 */
@@ -72,13 +88,13 @@
             padding: 2.5rem;
             border-radius: 24px;
             box-shadow: 0 15px 35px rgba(88, 168, 105, 0.2);
-            width: 380px; /* 固定宽度 */
-            flex-shrink: 0; /* 防止被挤压 */
+            width: 380px; 
+            flex-shrink: 0; 
             border: 1px solid rgba(199, 237, 204, 0.8);
             position: relative;
             overflow: hidden;
             backdrop-filter: blur(10px);
-            z-index: 10; /* 保证在最上层 */
+            z-index: 10;
         }
 
         /* 装饰性光晕 */
@@ -171,10 +187,47 @@
             box-shadow: 0 2px 5px rgba(0,0,0,0.02);
         }
 
-        /* 响应式：屏幕变窄时隐藏图片或调整布局 */
-        @media (max-width: 1000px) {
+        /* ========================================= */
+        /*              响应式 / 竖屏逻辑            */
+        /* ========================================= */
+        
+        /* 1. 平板或较窄的电脑屏幕 (小于 1200px) */
+        @media screen and (max-width: 1200px) {
+             /* 当屏幕不够宽显示三个并排大图时，强制转为竖向堆叠 */
+            .main-container {
+                flex-direction: column;
+                gap: 30px;
+                margin-top: 30px;
+                margin-bottom: 50px;
+            }
+
+            body {
+                height: auto; /* 允许滚动 */
+                align-items: flex-start;
+                padding-top: 40px;
+            }
+
+            .calculator-card {
+                order: -1; /* 计算器置顶 */
+                width: 100%;
+                max-width: 450px;
+            }
+            
             .side-panel {
-                display: none; /* 屏幕窄时隐藏图片，优先展示计算器 */
+                /* 在堆叠模式下，图片框也可以很大 */
+                max-width: 600px; 
+                width: 95%; 
+            }
+        }
+
+        /* 2. 手机竖屏 (更小的屏幕) */
+        @media screen and (max-width: 600px) {
+            .main-container {
+                gap: 20px;
+            }
+            .side-panel {
+                width: 100%; /* 占满手机屏幕 */
+                padding: 15px;
             }
         }
     </style>
@@ -185,12 +238,11 @@
     
     <!-- 左侧：管脚说明 -->
     <div class="side-panel">
-        <h3>PIN DESCRIPTION</h3>
-        <!-- 请将 src 替换为您本地的管脚图，例如 src="pinout.png" -->
-        <img src="pinout.png" alt="PW2163 Pinout">
-        <div style="margin-top:10px; font-size:0.8rem; color:#667c6c;">
-            1.BS  2.GND  3.SW<br>
-            4.VIN 5.EN   6.FB
+        <h3>管脚定义 (Pin Description)</h3>
+        <img src="pinout.png" alt="PW2163 管脚图" loading="lazy">
+        <div class="side-desc">
+            1.BS &nbsp; 2.GND &nbsp; 3.SW<br>
+            4.VIN &nbsp; 5.EN &nbsp;&nbsp; 6.FB
         </div>
     </div>
 
@@ -253,12 +305,11 @@
 
     <!-- 右侧：电路图 -->
     <div class="side-panel">
-        <h3>TYPICAL CIRCUIT</h3>
-        <!-- 请将 src 替换为您本地的电路图，例如 src="circuit.png" -->
-        <img src="circuit.png" alt="PW2163 Schematic">
-        <div style="margin-top:10px; font-size:0.8rem; color:#667c6c;">
-            Standard Buck Application<br>
-            Vin: 4.5V - 18V
+        <h3>典型应用电路 (Typical Circuit)</h3>
+        <img src="circuit.png" alt="PW2163 典型电路" loading="lazy">
+        <div class="side-desc">
+            标准降压应用 (Standard Buck)<br>
+            输入电压 Vin: 4.5V - 18V
         </div>
     </div>
 
@@ -358,9 +409,9 @@
 
         if (lockedKeys.length !== 2) return;
 
-        const targetKey = Object.keys(state.locks).find(k => !state.locks[k]);
+        const targetKey = Object.keys(state.locks).find(k => !state.locks[k]); 
         const fmt = (num) => parseFloat(num.toFixed(3));
-
+ 
         if (targetKey === 'vout') {
             if (r2 && r2 !== 0) {
                 const res = (r1 / r2 + 1) * 0.6;
@@ -373,7 +424,7 @@
                     const res = ratio * r2;
                     els.r1.input.value = fmt(res);
                 } else {
-                    els.r1.input.value = "Err"; 
+                    els.r1.input.value = "Err";  
                 }
             }
         } else if (targetKey === 'r2') {
