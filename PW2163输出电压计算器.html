@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PW2163输出电压计算器</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            /* 护眼绿渐变背景 */
+            background-image: linear-gradient(135deg, #e6f7e6 0%, #c7edcc 100%);
+            
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        /* 布局容器：左图 + 计算器 + 右图 */
+        .main-container {
+            display: flex;
+            align-items: center; /* 垂直居中 */
+            justify-content: center;
+            gap: 30px; /* 间距 */
+            max-width: 1200px;
+            width: 100%;
+        }
+
+        /* 侧边图片容器 */
+        .side-panel {
+            flex: 1; /* 弹性宽度 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.6);
+            padding: 15px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(88, 168, 105, 0.1);
+            border: 1px solid rgba(199, 237, 204, 0.5);
+            max-width: 300px; /* 图片最大宽度限制 */
+            transition: transform 0.3s;
+        }
+
+        .side-panel:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.8);
+        }
+
+        .side-panel h3 {
+            margin: 0 0 10px 0;
+            color: #3e5c46;
+            font-size: 1rem;
+            text-align: center;
+        }
+
+        .side-panel img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+            /* 给图片加一点边框效果 */
+            border: 2px solid #fff; 
+        }
+
+        /* 计算器核心卡片 */
+        .calculator-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2.5rem;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(88, 168, 105, 0.2);
+            width: 380px; /* 固定宽度 */
+            flex-shrink: 0; /* 防止被挤压 */
+            border: 1px solid rgba(199, 237, 204, 0.8);
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            z-index: 10; /* 保证在最上层 */
+        }
+
+        /* 装饰性光晕 */
+        .calculator-card::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(199, 237, 204, 0.8) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        h2 {
+            text-align: center;
+            color: #3e5c46;
+            margin-bottom: 2rem;
+            margin-top: 0;
+            font-size: 1.6rem;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
+        }
+
+        .input-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            position: relative;
+        }
+        
+        .lock-btn {
+            cursor: pointer;
+            font-size: 1.5rem;
+            margin-right: 15px;
+            width: 32px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+        
+        .lock-btn.unlocked { color: #bdc3c7; transform: scale(0.9); }
+        .lock-btn.unlocked:hover { color: #95a5a6; transform: scale(1.1); }
+        .lock-btn.locked { color: #4caf50; text-shadow: 0 0 10px rgba(76, 175, 80, 0.3); transform: scale(1.1); }
+        .lock-btn.disabled { color: #009688; cursor: default; opacity: 0.9; transform: scale(1); pointer-events: none; }
+
+        .input-wrapper { flex-grow: 1; }
+        .input-wrapper label { display: block; font-size: 0.85rem; color: #667c6c; margin-bottom: 6px; margin-left: 2px; }
+        
+        .input-container { position: relative; display: flex; align-items: center; }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 12px 40px 12px 15px;
+            border: 2px solid #e0e8e0;
+            border-radius: 12px;
+            font-size: 1.15rem;
+            font-weight: 500;
+            outline: none;
+            transition: all 0.3s;
+            color: #444;
+            background: #fff;
+        }
+        input[type="number"]:focus { border-color: #a5d6a7; box-shadow: 0 0 0 4px rgba(165, 214, 167, 0.2); }
+
+        input.input-locked { border-color: #c7edcc; background-color: #f1f8e9; color: #2e7d32; font-weight: 600; }
+        input.calculated { background-color: #e0f2f1; border-color: #4db6ac; color: #00695c; font-weight: bold; box-shadow: inset 0 0 5px rgba(0, 150, 136, 0.1); }
+        
+        .unit { position: absolute; right: 15px; color: #90a4ae; font-size: 0.9rem; pointer-events: none; }
+
+        .formula {
+            margin-top: 2.2rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #8fa395;
+            background: rgba(232, 245, 233, 0.5);
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px dashed #c8e6c9;
+        }
+
+        .hint {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #558b2f;
+            margin-bottom: 1.8rem;
+            background-color: #f1f8e9;
+            padding: 10px;
+            border-radius: 10px;
+            border-left: 4px solid #8bc34a;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+
+        /* 响应式：屏幕变窄时隐藏图片或调整布局 */
+        @media (max-width: 1000px) {
+            .side-panel {
+                display: none; /* 屏幕窄时隐藏图片，优先展示计算器 */
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="main-container">
+    
+    <!-- 左侧：管脚说明 -->
+    <div class="side-panel">
+        <h3>PIN DESCRIPTION</h3>
+        <!-- 请将 src 替换为您本地的管脚图，例如 src="pinout.png" -->
+        <img src="pinout.png" alt="PW2163 Pinout">
+        <div style="margin-top:10px; font-size:0.8rem; color:#667c6c;">
+            1.BS  2.GND  3.SW<br>
+            4.VIN 5.EN   6.FB
+        </div>
+    </div>
+
+    <!-- 中间：计算器 -->
+    <div class="calculator-card">
+        <h2>PW2163 输出电压计算器</h2>
+        
+        <div class="hint" id="statusHint">
+            状态: 已锁定 R1, R2 -> 计算 Vout
+        </div>
+
+        <!-- R1 Row -->
+        <div class="input-row">
+            <div class="lock-btn locked" id="lock-r1" onclick="toggleLock('r1')" title="点击锁定/解锁">
+                🔒
+            </div>
+            <div class="input-wrapper">
+                <label for="r1">R1 (上分压)</label>
+                <div class="input-container">
+                    <input type="number" id="r1" value="110" step="0.1" oninput="handleInput()">
+                    <span class="unit">kΩ</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- R2 Row -->
+        <div class="input-row">
+            <div class="lock-btn locked" id="lock-r2" onclick="toggleLock('r2')" title="点击锁定/解锁">
+                🔒
+            </div>
+            <div class="input-wrapper">
+                <label for="r2">R2 (下分压)</label>
+                <div class="input-container">
+                    <input type="number" id="r2" value="15" step="0.1" oninput="handleInput()">
+                    <span class="unit">kΩ</span>
+                </div>
+            </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px dashed #a5d6a7; margin: 1.8rem 0; opacity: 0.6;">
+
+        <!-- Vout Row -->
+        <div class="input-row">
+            <div class="lock-btn disabled" id="lock-vout" onclick="toggleLock('vout')" title="计算结果">
+                ✨
+            </div>
+            <div class="input-wrapper">
+                <label for="vout">Vout (输出电压)</label>
+                <div class="input-container">
+                    <input type="number" id="vout" step="0.01" oninput="handleInput()" readonly>
+                    <span class="unit">V</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="formula">
+            公式: Vout = (R1 / R2 + 1) × 0.6
+        </div>
+    </div>
+
+    <!-- 右侧：电路图 -->
+    <div class="side-panel">
+        <h3>TYPICAL CIRCUIT</h3>
+        <!-- 请将 src 替换为您本地的电路图，例如 src="circuit.png" -->
+        <img src="circuit.png" alt="PW2163 Schematic">
+        <div style="margin-top:10px; font-size:0.8rem; color:#667c6c;">
+            Standard Buck Application<br>
+            Vin: 4.5V - 18V
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 状态管理
+    const state = {
+        locks: {
+            r1: true,
+            r2: true,
+            vout: false
+        }
+    };
+
+    const els = {
+        r1: { input: document.getElementById('r1'), lock: document.getElementById('lock-r1') },
+        r2: { input: document.getElementById('r2'), lock: document.getElementById('lock-r2') },
+        vout: { input: document.getElementById('vout'), lock: document.getElementById('lock-vout') },
+        hint: document.getElementById('statusHint')
+    };
+
+    // 初始化
+    window.onload = function() {
+        updateUI();
+        calculate();
+    };
+
+    // 点击锁图标
+    function toggleLock(id) {
+        if (state.locks[id]) {
+            state.locks[id] = false;
+        } else {
+            const lockedCount = Object.values(state.locks).filter(v => v).length;
+            if (lockedCount >= 2) {
+                alert("请先解锁一个参数，才能锁定新的参数。\n（只能有2个已知条件）");
+                return;
+            }
+            state.locks[id] = true;
+        }
+        updateUI();
+        calculate();
+    }
+
+    function handleInput() {
+        calculate();
+    }
+
+    function updateUI() {
+        const keys = ['r1', 'r2', 'vout'];
+        const lockedKeys = keys.filter(k => state.locks[k]);
+        
+        keys.forEach(k => {
+            const btn = els[k].lock;
+            const ipt = els[k].input;
+            btn.className = 'lock-btn';
+            ipt.className = ''; 
+            ipt.readOnly = false; 
+
+            if (state.locks[k]) {
+                btn.classList.add('locked');
+                btn.innerHTML = '🔒';
+                ipt.classList.add('input-locked'); 
+            } else {
+                btn.classList.add('unlocked');
+                btn.innerHTML = '🔓';
+            }
+        });
+
+        if (lockedKeys.length === 2) {
+            const targetKey = keys.find(k => !state.locks[k]);
+            els[targetKey].lock.classList.remove('unlocked');
+            els[targetKey].lock.classList.add('disabled');
+            els[targetKey].lock.innerHTML = '✨'; 
+            els[targetKey].input.readOnly = true;
+            els[targetKey].input.classList.add('calculated');
+
+            const names = { r1: 'R1', r2: 'R2', vout: 'Vout' };
+            els.hint.textContent = `状态: 已知 ${names[lockedKeys[0]]} 和 ${names[lockedKeys[1]]} -> 自动计算 ${names[targetKey]}`;
+            els.hint.style.color = "#00695c";
+            els.hint.style.borderColor = "#4db6ac";
+            els.hint.style.backgroundColor = "#e0f2f1";
+        } else {
+            els.hint.textContent = "提示: 请点击左侧锁图标锁定任意两个参数，第三个将自动计算。";
+            els.hint.style.color = "#e67e22";
+            els.hint.style.borderColor = "#ffcc80";
+            els.hint.style.backgroundColor = "#fff3e0";
+        }
+    }
+
+    function calculate() {
+        const r1 = parseFloat(els.r1.input.value);
+        const r2 = parseFloat(els.r2.input.value);
+        const vout = parseFloat(els.vout.input.value);
+
+        const lockedKeys = Object.keys(state.locks).filter(k => state.locks[k]);
+
+        if (lockedKeys.length !== 2) return;
+
+        const targetKey = Object.keys(state.locks).find(k => !state.locks[k]);
+        const fmt = (num) => parseFloat(num.toFixed(3));
+
+        if (targetKey === 'vout') {
+            if (r2 && r2 !== 0) {
+                const res = (r1 / r2 + 1) * 0.6;
+                els.vout.input.value = fmt(res);
+            }
+        } else if (targetKey === 'r1') {
+            if (vout) {
+                const ratio = (vout / 0.6) - 1;
+                if (ratio > 0) {
+                    const res = ratio * r2;
+                    els.r1.input.value = fmt(res);
+                } else {
+                    els.r1.input.value = "Err"; 
+                }
+            }
+        } else if (targetKey === 'r2') {
+            if (vout) {
+                const ratio = (vout / 0.6) - 1;
+                if (ratio > 0 && r1) {
+                    const res = r1 / ratio;
+                    els.r2.input.value = fmt(res);
+                } else {
+                    els.r2.input.value = "Err";
+                }
+            }
+        }
+    }
+</script>
+
+</body>
+</html>
